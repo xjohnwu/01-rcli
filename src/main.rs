@@ -1,10 +1,11 @@
-use base64::{engine::general_purpose::STANDARD, Engine};
 use clap::Parser;
-use rcli::{process_csv, process_genpass, Base64SubCommand, Opts, Subcommand};
+use rcli::{
+    process_csv, process_decode, process_encode, process_genpass, Base64SubCommand, Opts,
+    Subcommand,
+};
 
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse();
-    println!("{:?}", opts);
     match opts.cmd {
         Subcommand::Csv(opts) => {
             let output = if let Some(output) = opts.output {
@@ -19,12 +20,10 @@ fn main() -> anyhow::Result<()> {
         }
         Subcommand::Base64(subcmd) => match subcmd {
             Base64SubCommand::Encode(opts) => {
-                let encoded = STANDARD.encode(&opts.input);
-                println!("Encode: {} => {}", &opts.input, encoded);
+                process_encode(&opts.input, opts.format)?;
             }
             Base64SubCommand::Decode(opts) => {
-                let decoded = STANDARD.decode(&opts.input)?;
-                println!("Decode: {} => {}", &opts.input, String::from_utf8(decoded)?);
+                process_decode(&opts.input, opts.format)?;
             }
         },
     }
