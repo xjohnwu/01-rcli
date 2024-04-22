@@ -1,4 +1,4 @@
-use crate::opts::GenPassOpts;
+use crate::cli::GenPassOpts;
 use rand::seq::SliceRandom;
 
 const UPPER_CASE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
