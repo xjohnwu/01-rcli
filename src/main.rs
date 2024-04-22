@@ -1,6 +1,6 @@
-// rcli csv -i input.csv -o output.json --header -d ','
+use base64::{engine::general_purpose::STANDARD, Engine};
 use clap::Parser;
-use rcli::{process_csv, process_genpass, Opts, Subcommand};
+use rcli::{process_csv, process_genpass, Base64SubCommand, Opts, Subcommand};
 
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse();
@@ -17,6 +17,16 @@ fn main() -> anyhow::Result<()> {
         Subcommand::GenPass(opts) => {
             process_genpass(&opts)?;
         }
+        Subcommand::Base64(subcmd) => match subcmd {
+            Base64SubCommand::Encode(opts) => {
+                let encoded = STANDARD.encode(&opts.input);
+                println!("Encode: {} => {}", &opts.input, encoded);
+            }
+            Base64SubCommand::Decode(opts) => {
+                let decoded = STANDARD.decode(&opts.input)?;
+                println!("Decode: {} => {}", &opts.input, String::from_utf8(decoded)?);
+            }
+        },
     }
     Ok(())
 }
