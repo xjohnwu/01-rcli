@@ -1,8 +1,9 @@
 mod base64;
 mod csv;
 mod genpass;
+mod text;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 
@@ -10,6 +11,7 @@ pub use self::{
     base64::{Base64Format, Base64SubCommand},
     csv::{CsvOpts, OutputFormat},
     genpass::GenPassOpts,
+    text::{TextSignFormat, TextSignOpts, TextSubCommand, TextVerifyOpts},
 };
 
 #[derive(Debug, Parser)]
@@ -25,16 +27,27 @@ pub enum Subcommand {
     Csv(CsvOpts),
     #[command(name = "genpass", about = "Generate a random password")]
     GenPass(GenPassOpts),
-    #[command(subcommand, name = "base64", about = "Encode or decode base64")]
+    #[command(subcommand, about = "Encode or decode base64")]
     Base64(Base64SubCommand),
+    #[command(subcommand, about = "Sign text")]
+    Text(TextSubCommand),
 }
 
-fn verify_input_file(filename: &str) -> Result<String, &'static str> {
+fn verify_file(filename: &str) -> Result<String, &'static str> {
     // if input is "-" or file exists
     if filename == "-" || Path::new(filename).exists() {
         Ok(filename.into())
     } else {
         Err("File not found")
+    }
+}
+
+fn verify_path(path: &str) -> Result<PathBuf, &'static str> {
+    let p = Path::new(path);
+    if p.exists() && p.is_dir() {
+        Ok(path.into())
+    } else {
+        Err("Path not found or is not a directory")
     }
 }
 
@@ -44,9 +57,9 @@ mod tests {
 
     #[test]
     fn test_verify_input_file() {
-        assert_eq!(verify_input_file("-"), Ok("-".into()));
-        assert_eq!(verify_input_file("*"), Err("File not found"));
-        assert_eq!(verify_input_file("Cargo.toml"), Ok("Cargo.toml".into()));
-        assert_eq!(verify_input_file("not-exist"), Err("File not found"));
+        assert_eq!(verify_file("-"), Ok("-".into()));
+        assert_eq!(verify_file("*"), Err("File not found"));
+        assert_eq!(verify_file("Cargo.toml"), Ok("Cargo.toml".into()));
+        assert_eq!(verify_file("not-exist"), Err("File not found"));
     }
 }
