@@ -6,7 +6,7 @@ const LOWER_CASE: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
 const NUMBERS: &[u8] = b"0123456789";
 const SYMBOLS: &[u8] = b"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 
-pub fn process_genpass(opts: &GenPassOpts) -> anyhow::Result<()> {
+pub fn process_genpass(opts: &GenPassOpts) -> anyhow::Result<String> {
     let mut rng = rand::thread_rng();
     let mut password = Vec::new();
     let mut chars = Vec::new();
@@ -54,7 +54,6 @@ pub fn process_genpass(opts: &GenPassOpts) -> anyhow::Result<()> {
         password.push(*c)
     }
     password.shuffle(&mut rng);
-
-    println!("{}", String::from_utf8_lossy(&password));
-    Ok(())
+    let password = String::from_utf8(password)?;
+    Ok(password)
 }
