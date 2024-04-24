@@ -1,7 +1,10 @@
+use crate::CmdExectuor;
+
 use super::{verify_file, verify_path};
 use clap::Parser;
 use core::fmt;
 use std::{path::PathBuf, str::FromStr};
+use tokio::fs;
 
 #[derive(Debug, Parser)]
 pub enum TextSubCommand {
@@ -77,5 +80,53 @@ impl From<TextSignFormat> for String {
 impl fmt::Display for TextSignFormat {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", String::from(*self))
+    }
+}
+
+impl CmdExectuor for TextSignOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let signed = crate::process_text_sign(&self.input, &self.key, self.format)?;
+        println!("{}", signed);
+        Ok(())
+    }
+}
+
+impl CmdExectuor for TextVerifyOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let verified = crate::process_text_verify(&self.input, &self.key, self.format, &self.sig)?;
+        if verified {
+            println!("Signature verified");
+        } else {
+            println!("Signature not verified");
+        }
+        Ok(())
+    }
+}
+
+impl CmdExectuor for TextKeyGenerateOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let key = crate::process_text_generate(self.format)?;
+        match self.format {
+            TextSignFormat::Blake3 => {
+                let name = self.output.join("blake3.key");
+                fs::write(name, &key[0]).await?;
+            }
+            TextSignFormat::Ed25519 => {
+                let name = &self.output;
+                fs::write(name.join("ed25519.sk"), &key[0]).await?;
+                fs::write(name.join("ed25519.pk"), &key[1]).await?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl CmdExectuor for TextSubCommand {
+    async fn execute(self) -> anyhow::Result<()> {
+        match self {
+            TextSubCommand::Sign(opts) => opts.execute().await,
+            TextSubCommand::Verify(opts) => opts.execute().await,
+            TextSubCommand::Generate(opts) => opts.execute().await,
+        }
     }
 }

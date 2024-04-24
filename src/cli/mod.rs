@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 
 use clap::Parser;
 
+use crate::CmdExectuor;
+
 pub use self::{
     base64::{Base64Format, Base64SubCommand},
     csv::{CsvOpts, OutputFormat},
@@ -35,6 +37,19 @@ pub enum Subcommand {
     Text(TextSubCommand),
     #[command(subcommand, about = "Serve a directory over HTTP")]
     Http(HttpSubCommand),
+}
+
+impl CmdExectuor for Subcommand {
+    async fn execute(self) -> anyhow::Result<()> {
+        match self {
+            Subcommand::Csv(opts) => opts.execute().await?,
+            Subcommand::GenPass(opts) => opts.execute().await?,
+            Subcommand::Base64(subcmd) => subcmd.execute().await?,
+            Subcommand::Text(subcmd) => subcmd.execute().await?,
+            Subcommand::Http(subcmd) => subcmd.execute().await?,
+        }
+        Ok(())
+    }
 }
 
 fn verify_file(filename: &str) -> Result<String, &'static str> {
