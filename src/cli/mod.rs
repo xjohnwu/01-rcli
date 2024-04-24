@@ -12,8 +12,8 @@ pub use self::{
     base64::{Base64Format, Base64SubCommand},
     csv::{CsvOpts, OutputFormat},
     genpass::GenPassOpts,
-    http::{HttpServeOpts, HttpSubCommand},
-    text::{TextSignFormat, TextSignOpts, TextSubCommand, TextVerifyOpts},
+    http::HttpSubCommand,
+    text::{TextSignFormat, TextSubCommand},
 };
 
 #[derive(Debug, Parser)]
