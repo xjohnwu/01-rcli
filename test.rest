@@ -1,0 +1,9 @@
+### Test static file
+
+GET http://localhost:3000/fixtures/ed25519.pk
+
+### Ttest static file with tower-http
+
+GET http://localhost:3000/Cargo.toml
+Accept-Encoding: gzip
+# Range: bytes=0-100
