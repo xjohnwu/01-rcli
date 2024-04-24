@@ -1,4 +1,4 @@
-use crate::CmdExectuor;
+use crate::CmdExecutor;
 
 use super::{verify_file, verify_path};
 use clap::Parser;
@@ -83,7 +83,7 @@ impl fmt::Display for TextSignFormat {
     }
 }
 
-impl CmdExectuor for TextSignOpts {
+impl CmdExecutor for TextSignOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let signed = crate::process_text_sign(&self.input, &self.key, self.format)?;
         println!("{}", signed);
@@ -91,7 +91,7 @@ impl CmdExectuor for TextSignOpts {
     }
 }
 
-impl CmdExectuor for TextVerifyOpts {
+impl CmdExecutor for TextVerifyOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let verified = crate::process_text_verify(&self.input, &self.key, self.format, &self.sig)?;
         if verified {
@@ -103,7 +103,7 @@ impl CmdExectuor for TextVerifyOpts {
     }
 }
 
-impl CmdExectuor for TextKeyGenerateOpts {
+impl CmdExecutor for TextKeyGenerateOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let key = crate::process_text_generate(self.format)?;
         match self.format {
@@ -121,7 +121,7 @@ impl CmdExectuor for TextKeyGenerateOpts {
     }
 }
 
-impl CmdExectuor for TextSubCommand {
+impl CmdExecutor for TextSubCommand {
     async fn execute(self) -> anyhow::Result<()> {
         match self {
             TextSubCommand::Sign(opts) => opts.execute().await,

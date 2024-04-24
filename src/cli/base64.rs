@@ -1,4 +1,4 @@
-use crate::CmdExectuor;
+use crate::CmdExecutor;
 
 use super::verify_file;
 use clap::Parser;
@@ -65,7 +65,7 @@ impl fmt::Display for Base64Format {
     }
 }
 
-impl CmdExectuor for Base64EncodeOpts {
+impl CmdExecutor for Base64EncodeOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let mut reader = crate::get_reader(&self.input)?;
         let ret = crate::process_encode(&mut reader, self.format)?;
@@ -74,7 +74,7 @@ impl CmdExectuor for Base64EncodeOpts {
     }
 }
 
-impl CmdExectuor for Base64DecodeOpts {
+impl CmdExecutor for Base64DecodeOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let mut reader = crate::get_reader(&self.input)?;
         let ret = crate::process_decode(&mut reader, self.format)?;
@@ -85,7 +85,7 @@ impl CmdExectuor for Base64DecodeOpts {
     }
 }
 
-impl CmdExectuor for Base64SubCommand {
+impl CmdExecutor for Base64SubCommand {
     async fn execute(self) -> anyhow::Result<()> {
         match self {
             Base64SubCommand::Encode(opts) => opts.execute().await,

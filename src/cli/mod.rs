@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use clap::Parser;
 
-use crate::CmdExectuor;
+use crate::CmdExecutor;
 
 pub use self::{
     base64::{Base64Format, Base64SubCommand},
@@ -22,11 +22,11 @@ pub use self::{
 #[command(name= "rcli", version, author, about, long_about = None)]
 pub struct Opts {
     #[command(subcommand)]
-    pub cmd: Subcommand,
+    pub cmd: SubCommand,
 }
 
 #[derive(Debug, Parser)]
-pub enum Subcommand {
+pub enum SubCommand {
     #[command(name = "csv", about = "Show CSV or convert CSV to other formats")]
     Csv(CsvOpts),
     #[command(name = "genpass", about = "Generate a random password")]
@@ -39,14 +39,14 @@ pub enum Subcommand {
     Http(HttpSubCommand),
 }
 
-impl CmdExectuor for Subcommand {
+impl CmdExecutor for SubCommand {
     async fn execute(self) -> anyhow::Result<()> {
         match self {
-            Subcommand::Csv(opts) => opts.execute().await?,
-            Subcommand::GenPass(opts) => opts.execute().await?,
-            Subcommand::Base64(subcmd) => subcmd.execute().await?,
-            Subcommand::Text(subcmd) => subcmd.execute().await?,
-            Subcommand::Http(subcmd) => subcmd.execute().await?,
+            SubCommand::Csv(opts) => opts.execute().await?,
+            SubCommand::GenPass(opts) => opts.execute().await?,
+            SubCommand::Base64(subcmd) => subcmd.execute().await?,
+            SubCommand::Text(subcmd) => subcmd.execute().await?,
+            SubCommand::Http(subcmd) => subcmd.execute().await?,
         }
         Ok(())
     }

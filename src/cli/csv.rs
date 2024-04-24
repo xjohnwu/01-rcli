@@ -1,4 +1,4 @@
-use crate::CmdExectuor;
+use crate::CmdExecutor;
 
 use super::verify_file;
 use clap::Parser;
@@ -29,7 +29,7 @@ pub struct CsvOpts {
     pub header: bool,
 }
 
-impl CmdExectuor for CsvOpts {
+impl CmdExecutor for CsvOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let output = if let Some(output) = self.output {
             output
