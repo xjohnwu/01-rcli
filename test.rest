@@ -1,0 +1,3 @@
+### Test index page
+
+GET http://localhost:3000/fixtures/ed25519.pk
