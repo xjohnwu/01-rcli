@@ -1,9 +1,6 @@
 use std::{fs, io::Read, path::Path};
 
-use crate::{
-    cli::{GenPassOpts, TextSignFormat},
-    get_reader, process_genpass,
-};
+use crate::{cli::TextSignFormat, get_reader, process_genpass};
 use anyhow::Result;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
@@ -181,14 +178,7 @@ impl KeyLoader for Ed25519Verifier {
 
 impl KeyGenerator for Blake3 {
     fn generate() -> Result<Vec<Vec<u8>>> {
-        let opts: GenPassOpts = GenPassOpts {
-            length: 32,
-            uppercase: true,
-            lowercase: true,
-            number: true,
-            symbol: true,
-        };
-        let key = process_genpass(&opts)?;
+        let key = process_genpass(32, true, true, true, true)?;
         let key = key.as_bytes().to_vec();
         Ok(vec![key])
     }

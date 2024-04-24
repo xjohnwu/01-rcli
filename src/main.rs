@@ -22,7 +22,13 @@ async fn main() -> anyhow::Result<()> {
             process_csv(&opts.input, output, opts.format)?;
         }
         Subcommand::GenPass(opts) => {
-            let password = process_genpass(&opts)?;
+            let password = process_genpass(
+                opts.length,
+                opts.uppercase,
+                opts.lowercase,
+                opts.number,
+                opts.symbol,
+            )?;
             println!("{}", password);
             // output password strength in stderr
             let estimate = zxcvbn(&password, &[])?;
