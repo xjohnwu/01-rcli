@@ -4,8 +4,10 @@ use crate::CmdExecutor;
 
 use super::verify_path;
 use clap::Parser;
+use enum_dispatch::enum_dispatch;
 
 #[derive(Debug, Parser)]
+#[enum_dispatch(CmdExecutor)]
 pub enum HttpSubCommand {
     #[command(about = "Send a directory over HTTP")]
     Serve(HttpServeOpts),
@@ -22,13 +24,5 @@ pub struct HttpServeOpts {
 impl CmdExecutor for HttpServeOpts {
     async fn execute(self) -> anyhow::Result<()> {
         crate::process_http_serve(self.dir, self.port).await
-    }
-}
-
-impl CmdExecutor for HttpSubCommand {
-    async fn execute(self) -> anyhow::Result<()> {
-        match self {
-            HttpSubCommand::Serve(opts) => opts.execute().await,
-        }
     }
 }
