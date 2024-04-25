@@ -54,12 +54,33 @@ async fn file_handler(
             format!("File {} not found!", p.display()),
         )
             .into_response()
+    } else if p.is_dir() {
+        match handle_dir(&p, state).await {
+            Ok(html) => (StatusCode::OK, Html(html)).into_response(),
+            Err(e) => {
+                warn!("Error reading directory: {:?}", e);
+                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+            }
+        }
     } else {
-        // TODO: test p is a directory
-        if p.is_dir() {
-            let mut content = String::new();
-            content.push_str(&format!(
-                "<!DOCTYPE html>
+        match tokio::fs::read_to_string(p).await {
+            Ok(content) => {
+                info!("Read {} bytes", content.len());
+                (StatusCode::OK, content).into_response()
+            }
+            Err(e) => {
+                warn!("Error reading file: {:?}", e);
+                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+            }
+        }
+    }
+}
+
+async fn handle_dir(p: &PathBuf, state: Arc<HttpServeState>) -> Result<String> {
+    println!("handle_dir: {:?} {:?}", p, state);
+    let mut content = String::new();
+    content.push_str(&format!(
+        "<!DOCTYPE html>
 <html lang=\"en\">
     <head>
         <meta charset=\"UTF-8\">
@@ -69,60 +90,34 @@ async fn file_handler(
     <body>
         <h1>Files in {}</h1>
         <ul>\n",
-                p.display()
-            ));
-            // if it is a directory, list all files/subdirectories
-            // as <li><a href="/path/to/file">file name</a></li>
-            let entries_result = tokio::fs::read_dir(p).await;
-            match entries_result {
-                Ok(mut entries) => {
-                    loop {
-                        let entry_result = entries.next_entry().await;
-                        match entry_result {
-                            Ok(Some(entry)) => {
-                                let name = entry.file_name();
-                                let name = name.to_string_lossy();
-                                let path = entry.path();
-                                let path = path.strip_prefix(&state.path).unwrap();
-                                let path = path.to_string_lossy();
-                                content.push_str(&format!(
-                                    "\t\t<li><a href=\"{}\">{}</a></li>\n",
-                                    path, name
-                                ));
-                            }
-                            Ok(None) => break,
-                            Err(e) => {
-                                warn!("Error reading entry: {:?}", e);
-                                return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-                                    .into_response();
-                            }
-                        }
-                    }
-                    content.push_str(
-                        "        </ul>
-    </body>
-</html>",
-                    );
-                    (StatusCode::OK, Html(content)).into_response()
-                }
-                Err(e) => {
-                    warn!("Error reading directory: {:?}", e);
-                    (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
-                }
+        p.display()
+    ));
+    // if it is a directory, list all files/subdirectories
+    // as <li><a href="/path/to/file">file name</a></li>
+    let mut entries = tokio::fs::read_dir(p).await?;
+    loop {
+        let entry_opt = entries.next_entry().await?;
+        match entry_opt {
+            Some(entry) => {
+                let name = entry.file_name();
+                let name = name.to_string_lossy();
+                let path = entry.path();
+                let path = path.strip_prefix(&state.path)?;
+                let path = path.to_string_lossy();
+                content.push_str(&format!(
+                    "\t\t<li><a href=\"/{}\">{}</a></li>\n",
+                    path, name
+                ));
             }
-        } else {
-            match tokio::fs::read_to_string(p).await {
-                Ok(content) => {
-                    info!("Read {} bytes", content.len());
-                    (StatusCode::OK, content).into_response()
-                }
-                Err(e) => {
-                    warn!("Error reading file: {:?}", e);
-                    (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
-                }
-            }
+            None => break,
         }
     }
+    content.push_str(
+        "        </ul>
+    </body>
+</html>",
+    );
+    Ok(content)
 }
 
 #[cfg(test)]
