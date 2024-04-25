@@ -1,9 +1,17 @@
 ### Test static file
+GET http://localhost:3000/Cargo.toml
+
+
+### Test non-UTF8 static file
 
 GET http://localhost:3000/fixtures/ed25519.pk
 
-### Ttest static file with tower-http
+### Test directory
+GET http://localhost:3000/fixtures/
 
-GET http://localhost:3000/Cargo.toml
-Accept-Encoding: gzip
+### Test static file with tower-http
+GET http://localhost:3000/tower/Cargo.toml
+
+### Test non-UTF8 static file
+GET http://localhost:3000/tower/fixtures/ed25519.pk
 # Range: bytes=0-100
