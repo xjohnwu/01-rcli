@@ -38,7 +38,7 @@
           "kind": "bin"
         }
       },
-      "args": ["base64", "encode"],
+      "args": ["jwt", "verify", "-t", "yJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhY21lIiwiYXVkIjoiZGV2aWNlMSIsImV4cCI6IjE0ZCJ9.n4PaRiGdj7GAG_f9kztifg6JiKFQygebyjiFvdcHu_U"],
       "cwd": "${workspaceFolder}"
     },
     {
