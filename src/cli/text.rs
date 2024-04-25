@@ -16,6 +16,10 @@ pub enum TextSubCommand {
     Verify(TextVerifyOpts),
     #[command(about = "Generate a new key.")]
     Generate(TextKeyGenerateOpts),
+    #[command(about = "Encrypt a message.")]
+    Encrypt(TextEncryptOpts),
+    #[command(about = "Decrypt a message.")]
+    Decrypt(TextDecryptOpts),
 }
 
 #[derive(Debug, Parser)]
@@ -40,6 +44,7 @@ pub struct TextKeyGenerateOpts {
 pub enum TextSignFormat {
     Blake3,
     Ed25519,
+    ChaCha20Poly1305,
 }
 
 #[derive(Debug, Parser)]
@@ -54,10 +59,27 @@ pub struct TextVerifyOpts {
     pub sig: String,
 }
 
+#[derive(Debug, Parser)]
+pub struct TextEncryptOpts {
+    #[arg(short, long, value_parser = verify_file)]
+    pub key: String,
+    #[arg(short, long, value_parser = verify_file, default_value = "-")]
+    pub input: String,
+}
+
+#[derive(Debug, Parser)]
+pub struct TextDecryptOpts {
+    #[arg(short, long, value_parser = verify_file)]
+    pub key: String,
+    #[arg(short, long, value_parser = verify_file, default_value = "-")]
+    pub input: String,
+}
+
 fn parse_format(s: &str) -> Result<TextSignFormat, String> {
     match s {
         "blake3" => Ok(TextSignFormat::Blake3),
         "ed25519" => Ok(TextSignFormat::Ed25519),
+        "chacha20poly1305" => Ok(TextSignFormat::ChaCha20Poly1305),
         _ => Err(format!("Invalid format: {}", s)),
     }
 }
@@ -75,6 +97,7 @@ impl From<TextSignFormat> for String {
         match f {
             TextSignFormat::Blake3 => "blake3".to_string(),
             TextSignFormat::Ed25519 => "ed25519".to_string(),
+            TextSignFormat::ChaCha20Poly1305 => "chacha20poly1305".to_string(),
         }
     }
 }
@@ -118,7 +141,27 @@ impl CmdExecutor for TextKeyGenerateOpts {
                 fs::write(name.join("ed25519.sk"), &key[0]).await?;
                 fs::write(name.join("ed25519.pk"), &key[1]).await?;
             }
+            TextSignFormat::ChaCha20Poly1305 => {
+                let name = self.output.join("chacha20poly1305.key");
+                fs::write(name, &key[0]).await?;
+            }
         }
+        Ok(())
+    }
+}
+
+impl CmdExecutor for TextEncryptOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let encrypted = crate::process_text_encrypt(&self.input, &self.key)?;
+        println!("{}", encrypted);
+        Ok(())
+    }
+}
+
+impl CmdExecutor for TextDecryptOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let decrypted = crate::process_text_decrypt(&self.input, &self.key)?;
+        println!("{}", decrypted);
         Ok(())
     }
 }
