@@ -2,6 +2,7 @@ mod base64;
 mod csv;
 mod genpass;
 mod http;
+mod jwt;
 mod text;
 
 use std::path::{Path, PathBuf};
@@ -9,7 +10,7 @@ use std::path::{Path, PathBuf};
 use clap::Parser;
 use enum_dispatch::enum_dispatch;
 
-pub use self::{base64::*, csv::*, genpass::*, http::*, text::*};
+pub use self::{base64::*, csv::*, genpass::*, http::*, jwt::*, text::*};
 
 #[derive(Debug, Parser)]
 #[command(name= "rcli", version, author, about, long_about = None)]
@@ -31,6 +32,8 @@ pub enum SubCommand {
     Text(TextSubCommand),
     #[command(subcommand, about = "Serve a directory over HTTP")]
     Http(HttpSubCommand),
+    #[command(subcommand, about = "JWT token sign/verify")]
+    Jwt(JwtSubCommand),
 }
 
 fn verify_file(filename: &str) -> Result<String, &'static str> {
