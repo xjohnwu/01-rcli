@@ -3,8 +3,11 @@ use std::{fs, io::Read, path::Path};
 use crate::{cli::TextSignFormat, get_reader, process_genpass};
 use anyhow::Result;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use chacha20poly1305::{
+    aead::{Aead, AeadCore, OsRng},
+    ChaCha20Poly1305, Key, KeyInit, Nonce,
+};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
-use rand::rngs::OsRng;
 
 pub trait TextSign {
     /// Sign the data from the reader and return the signature.
@@ -38,6 +41,10 @@ pub struct Ed25519Verifier {
     key: VerifyingKey,
 }
 
+pub struct ChaCha20Poly1305Cipher {
+    cipher: ChaCha20Poly1305,
+}
+
 pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> Result<String> {
     let mut reader = get_reader(input)?;
     let signed = match format {
@@ -49,6 +56,7 @@ pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> Resu
             let signer = Ed25519Signer::load(key)?;
             signer.sign(&mut reader)?
         }
+        TextSignFormat::ChaCha20Poly1305 => todo!(),
     };
     let signed = URL_SAFE_NO_PAD.encode(signed);
     Ok(signed)
@@ -71,6 +79,7 @@ pub fn process_text_verify(
             let verifier = Ed25519Verifier::load(key)?;
             verifier.verify(reader, &sig)?
         }
+        TextSignFormat::ChaCha20Poly1305 => todo!(),
     };
     Ok(verified)
 }
@@ -79,7 +88,51 @@ pub fn process_text_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
     match format {
         TextSignFormat::Blake3 => Blake3::generate(),
         TextSignFormat::Ed25519 => Ed25519Signer::generate(),
+        TextSignFormat::ChaCha20Poly1305 => ChaCha20Poly1305Cipher::generate(),
     }
+}
+
+pub fn process_text_encrypt(input: &str, key: &str) -> Result<String> {
+    let cipher = ChaCha20Poly1305Cipher::load(key)?;
+
+    let mut reader = get_reader(input)?;
+    let mut buf = Vec::new();
+    // TODO: improve perf by reading in chunks.
+    reader.read_to_end(&mut buf)?;
+
+    let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng); // 96-bits; unique per message
+    let result = cipher.cipher.encrypt(&nonce, buf.as_ref());
+    match result {
+        Ok(encrypted) => {
+            let mut v = Vec::new();
+            v.extend(nonce);
+            v.extend(encrypted);
+            let ciphertext = URL_SAFE_NO_PAD.encode(v);
+            Ok(ciphertext)
+        }
+        Err(e) => anyhow::bail!("Error encrypting: {}", e),
+    }
+}
+
+pub fn process_text_decrypt(input: &str, key: &str) -> Result<String> {
+    let cipher = ChaCha20Poly1305Cipher::load(key)?;
+    let mut reader = get_reader(input)?;
+    let mut s = String::new();
+    // TODO: improve perf by reading in chunks.
+    reader.read_to_string(&mut s)?;
+
+    let buf = URL_SAFE_NO_PAD.decode(s.trim())?;
+
+    let nonce = &buf[..12];
+    let ciphertext = &buf[12..];
+    let result = cipher
+        .cipher
+        .decrypt(Nonce::from_slice(nonce), ciphertext.as_ref());
+    let decrypted = match result {
+        Ok(decrypted) => String::from_utf8(decrypted)?,
+        Err(e) => anyhow::bail!(e.to_string()),
+    };
+    Ok(decrypted)
 }
 
 impl TextSign for Blake3 {
@@ -194,6 +247,32 @@ impl KeyGenerator for Ed25519Signer {
     }
 }
 
+impl KeyGenerator for ChaCha20Poly1305Cipher {
+    fn generate() -> Result<Vec<Vec<u8>>> {
+        let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+        Ok(vec![key.to_vec()])
+    }
+}
+
+impl KeyLoader for ChaCha20Poly1305Cipher {
+    fn load(path: impl AsRef<Path>) -> Result<Self> {
+        let key = fs::read(path)?;
+        Self::try_new(&key)
+    }
+}
+
+impl ChaCha20Poly1305Cipher {
+    pub fn new(key: Key) -> Self {
+        let cipher = ChaCha20Poly1305::new(&key);
+        Self { cipher }
+    }
+
+    pub fn try_new(key: &[u8]) -> Result<Self> {
+        let key = Key::clone_from_slice(key);
+        Ok(ChaCha20Poly1305Cipher::new(key))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,6 +294,17 @@ mod tests {
         let data = b"hello";
         let sig = sk.sign(&mut &data[..]).unwrap();
         assert!(pk.verify(&data[..], &sig).unwrap());
+        Ok(())
+    }
+
+    #[test]
+    fn test_chacha20poly1305() -> Result<(), chacha20poly1305::Error> {
+        let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+        let cipher = ChaCha20Poly1305::new(&key);
+        let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng); // 96-bits; unique per message
+        let ciphertext = cipher.encrypt(&nonce, b"plaintext message".as_ref())?;
+        let plaintext = cipher.decrypt(&nonce, ciphertext.as_ref())?;
+        assert_eq!(&plaintext, b"plaintext message");
         Ok(())
     }
 }
